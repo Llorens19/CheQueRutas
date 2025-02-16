@@ -1,0 +1,18 @@
+[submodule "payments-chequerutas"]
+	path = payments-chequerutas
+	url = https://github.com/Llorens19/payments-chequerutas.git
+[submodule "Images-service-chequerutas"]
+	path = Images-service-chequerutas
+	url = https://github.com/Llorens19/Images-service-chequerutas.git
+[submodule "proxy-service-chequerutas"]
+	path = proxy-service-chequerutas
+	url = https://github.com/Llorens19/proxy-service-chequerutas.git
+[submodule "frontend-next-chequerutas"]
+	path = frontend-next-chequerutas
+	url = https://github.com/Llorens19/frontend-next-chequerutas.git
+[submodule "backend-fastify-chequerutas"]
+	path = backend-fastify-chequerutas
+	url = https://github.com/Llorens19/backend-fastify-chequerutas.git
+[submodule "notifications-chequerutas"]
+	path = notifications-chequerutas
+	url = https://github.com/Llorens19/notifications-chequerutas.git

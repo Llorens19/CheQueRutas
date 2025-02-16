@@ -1,0 +1,217 @@
+version: '3.9'
+
+services:
+  postgres:
+    build: db
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: llorens19
+      POSTGRES_PASSWORD: Hola1234
+      POSTGRES_DB: chequerutas_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/postgresql.conf:/var/lib/postgresql/data/postgresql.conf  # Montamos el archivo
+    ports:
+      - "5433:5432"
+    networks:
+      - chequerutas-network
+
+
+  redis:
+    image: redis:alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass Hola1234
+    networks:
+      - chequerutas-network
+
+  # image-service:
+  #   build:
+  #     context: ./image-service
+  #     dockerfile: Dockerfile
+  #   container_name: image-service-chequerutas
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./image-service/.env
+  #   volumes:
+  #     - ./image-service/uploads:/app/uploads
+  #   ports:
+  #     - "${PORT}:${PORT}"
+  #   command: ["uvicorn", "main:app", "--host", "${HOST}", "--port", "${PORT}"]
+  #   networks:
+  #     - chequerutas-network
+
+  image-service:
+    build:
+      context: ./image-service-chequerutas
+      dockerfile: Dockerfile
+    container_name: image-service-chequerutas
+    restart: unless-stopped
+    env_file:
+      - ./image-service-chequerutas/.env
+    volumes:
+      - ./image-service-chequerutas/uploads:/app/uploads
+    ports:
+      - "5000:5000"
+      # - "${PORT}:${PORT}"
+    command: ["npm", "run", "dev"]
+    networks:
+      - chequerutas-network
+
+
+  backend-fastify:
+    build:
+      context: ./backend-fastify-chequerutas
+      dockerfile: Dockerfile
+    container_name: backend-fastify-chequerutas
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    # env_file: ./backend-fastify-chequerutas/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5433
+      DB_USERNAME: llorens19
+      DB_PASSWORD: Hola1234
+      DB_DATABASE: chequerutas_db
+    volumes:
+      - ./backend-fastify-chequerutas:/app:delegated
+      - /app/node_modules
+    ports:
+      - "4001:4001"
+    command: ["npm", "run", "dev"]
+    networks:
+      - chequerutas-network
+
+  frontend-next:
+    build:
+      context: ./frontend-next-chequerutas
+      dockerfile: Dockerfile
+    container_name: frontend-next-chequerutas
+    restart: unless-stopped
+    depends_on:
+      - backend-fastify
+    env_file: ./frontend-next-chequerutas/.env
+    # environment:
+    #   NODE_ENV: development
+    volumes:
+      - ./frontend-next-chequerutas:/app:delegated
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    command: ["npm", "run", "dev"]
+    networks:
+      - chequerutas-network
+
+  # frontend-react:
+  #   build:
+  #     context: ./frontend-react-chequerutas
+  #     dockerfile: Dockerfile
+  #   container_name: frontend-react-chequerutas
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - backend-fastify
+  #   environment:
+  #     NODE_ENV: development
+  #   volumes:
+  #     - ./frontend-react-chequerutas:/app:delegated
+  #     - /app/node_modules
+  #   ports:
+  #     - "3002:3002"
+  #   command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+  #   networks:
+  # #     - chequerutas-network
+
+
+  proxy:
+    build:
+      context: ./proxy-service-chequerutas
+      dockerfile: Dockerfile
+    container_name: proxy-chequerutas
+    restart: unless-stopped
+    depends_on:
+      - backend-fastify
+      - frontend-next
+    env_file: ./proxy-service-chequerutas/.env
+    # environment:
+    #   PORT_PROXY: ${PORT_PROXY}
+    #   URL_PROXY: ${URL_PROXY}
+    #   URL_VUE: ${URL_VUE}
+    #   URL_REACT: ${URL_REACT}
+    volumes:
+      - ./proxy-service-chequerutas:/app # Para desarrollo, monta el código fuente
+      - /app/node_modules # Excluye node_modules para evitar conflictos
+    ports:
+      - "4000:4000"
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    # Para desarrollo
+    stdin_open: true  # Mantiene stdin abierto. Para interactuar con el contenedor (docker exec -it <container_id> bash)
+    tty: true         # Asigna un pseudo-terminal
+    networks:
+      - chequerutas-network
+
+
+
+
+  notifications:
+    build:
+      context: ./notifications-chequerutas
+      dockerfile: Dockerfile
+    container_name: notifications-chequerutas
+    restart: unless-stopped
+    depends_on:
+      - backend-fastify
+      - frontend-next
+    env_file: ./notifications-chequerutas/.env
+    # environment:
+    #   PORT_PROXY: ${PORT_PROXY}
+    #   URL_PROXY: ${URL_PROXY}
+    #   URL_VUE: ${URL_VUE}
+    #   URL_REACT: ${URL_REACT}
+    volumes:
+      - ./notifications-chequerutas:/app # Para desarrollo, monta el código fuente
+      - /app/node_modules # Excluye node_modules para evitar conflictos
+    ports:
+      - "4003:4003"
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    # Para desarrollo
+    stdin_open: true  # Mantiene stdin abierto. Para interactuar con el contenedor (docker exec -it <container_id> bash)
+    tty: true         # Asigna un pseudo-terminal
+    networks:
+      - chequerutas-network
+
+  payments:
+    build:
+      context: ./payments-chequerutas
+      dockerfile: Dockerfile
+    container_name: payments-chequerutas
+    restart: unless-stopped
+    depends_on:
+      - backend-fastify
+      - frontend-next
+    env_file: ./payments-chequerutas/.env
+    # environment:
+    #   PORT_PROXY: ${PORT_PROXY}
+    #   URL_PROXY: ${URL_PROXY}
+    #   URL_VUE: ${URL_VUE}
+    #   URL_REACT: ${URL_REACT}
+    volumes:
+      - ./payments-chequerutas:/app # Para desarrollo, monta el código fuente
+      - /app/node_modules # Excluye node_modules para evitar conflictos
+    ports:
+      - "4002:4002"
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    # Para desarrollo
+    stdin_open: true  # Mantiene stdin abierto. Para interactuar con el contenedor (docker exec -it <container_id> bash)
+    tty: true         # Asigna un pseudo-terminal
+    networks:
+      - chequerutas-network
+
+volumes:
+  postgres_data:
+
+networks:
+  chequerutas-network:
+    driver: bridge

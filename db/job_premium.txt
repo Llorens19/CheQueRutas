@@ -1,0 +1,5 @@
+SELECT cron.schedule(
+    'update_premium_users',
+    '0 0 * * *',
+    $$ UPDATE users SET premium_level = 0 WHERE premium_until < NOW() AND premium_level > 0 $$
+);
